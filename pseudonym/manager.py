@@ -3,6 +3,7 @@ import logging
 from elasticsearch.exceptions import NotFoundError
 from pseudonym.compiler import SchemaCompiler
 from pseudonym.enforcer import SchemaEnforcer
+from pseudonym.errors import RoutingException
 from pseudonym.strategy import Strategies
 
 
@@ -15,6 +16,7 @@ class SchemaManager(object):
         self.schema_index = schema_index
         self._schema = None
         self._strategies = None
+        self._routers = {}
 
     schema_type = 'schema'
 
@@ -30,6 +32,18 @@ class SchemaManager(object):
                                   body={'aliases': [], 'indexes': []}, version=0, version_type='external')
                 self._schema = ({'_version': 0}, {'aliases': [], 'indexes': []})
         return self._schema
+
+    def get_router(self, alias_name):
+        if alias_name not in self._routers:
+            schema = self.get_current_schema()
+            for alias in schema['aliases']:
+                if alias['name'] == alias_name:
+                    break
+            else:
+                raise RoutingException("%s is not in the schema." % alias_name)
+
+            self._routers[alias_name] = self.strategies[alias_name].get_router(schema, alias)
+        return self._routers[alias_name]
 
     @property
     def strategies(self):
@@ -49,9 +63,13 @@ class SchemaManager(object):
                           id='master', body=schema,
                           version=meta['_version'] + 1, version_type='external')
         self.client.create(index=self.schema_index, doc_type=self.schema_type, id=meta['_version'] + 1, body=schema)
+        self._routers = {}
 
     def enforce(self):
         SchemaEnforcer(self.client).enforce(self.get_current_schema(True)[1])
 
     def route(self, alias, routing):
-        return self.strategies[alias].route(alias, routing)
+        return self.get_router(alias).route(routing)
+
+    def reload(self):
+        self.get_current_schema(True)

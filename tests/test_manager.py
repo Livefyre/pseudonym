@@ -15,7 +15,7 @@ class TestSchemaManager(unittest.TestCase):
     def tearDown(self):
         self.client.indices.delete(self.test_schema_index)
 
-    def test(self):
+    def test_schema_compiling(self):
         cfg = {'aliases': [{'name': 'alias1', 'strategy': {'date': {'indexes': {'201401': datetime.date(2014, 1, 1)}}}}]}
         self.manager.update(cfg)
 

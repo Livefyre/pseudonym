@@ -1,9 +1,6 @@
 import datetime
 from pseudonym.errors import InvalidConfigError
-
-
-class RoutingException(Exception):
-    pass
+from pseudonym.errors import RoutingException
 
 
 Strategies = {}
@@ -16,8 +13,29 @@ def register(name):
     return dec
 
 
+class BaseRouter(object):
+    def __init__(self, indexes, alias):
+        self.indexes = indexes
+        self.alias = alias
+
+    def route(self, routing):
+        raise NotImplementedError()
+
+
+class RangeRouter(BaseRouter):
+    def route(self, routing):
+        for index in self.indexes:
+            if routing >= index['routing']:
+                return index
+        if not index:
+            raise RoutingException("%s has no indexes" % self.alias['name'])
+
+        return index
+
+
 class RoutingStrategy(object):
     uses_alias = True
+    Router = None
 
     __instance = None
 
@@ -36,6 +54,14 @@ class RoutingStrategy(object):
                 indexes.append(index)
         return indexes
 
+    def list_indexes(self, schema, alias):
+        return [i for i in schema['indexes'] if i['name'] in {i['name'] for i in alias['indexes']}]
+
+    def get_router(self, schema, alias):
+        if not self.Router:
+            raise RoutingException("Cannot route to this %s." % alias['name'])
+        return self.Router(self.list_indexes(schema, alias), alias)
+
 
 @register('index_pointer')
 class IndexPointerStrategy(RoutingStrategy):
@@ -44,9 +70,6 @@ class IndexPointerStrategy(RoutingStrategy):
 
     def link_indexes(self, schema, alias, cfg, new_indexes):
         return [i for i in schema['indexes'] if i['name'] in set(cfg['indexes'])]
-
-    def route(self, routing):
-        raise RoutingException("Cannot route to this alias.")
 
 
 @register('appending_pointer')
@@ -63,12 +86,11 @@ class AppendingPointerStrategy(RoutingStrategy):
 
         return indexes
 
-    def route(self, routing):
-        raise RoutingException("Cannot route to this alias.")
-
 
 @register('alias_pointer')
 class AliasPointerStrategy(RoutingStrategy):
+    Router = RangeRouter
+
     def create_indexes(self, schema, alias, cfg):
         return []
 
@@ -87,38 +109,42 @@ class AliasPointerStrategy(RoutingStrategy):
             indexes = indexes[slice(*[int(k) if k else None for k in cfg['slice'].split(':')])]
         return indexes
 
+    def list_indexes(self, schema, alias):
+        indexes = super(AliasPointerStrategy, self).list_indexes(schema, alias)
+        try:
+            return sorted(indexes, key=lambda x: x['routing'], reverse=True)
+        except KeyError:
+            raise RoutingException("Cannot route to AliasPointerStrategy alias without routing parameter.")
+
 
 @register('single')
 class SingleIndexRoutingStrategy(RoutingStrategy):
     uses_alias = False
+
+    class Router(BaseRouter):
+        def route(self, routing):
+            return self.indexes[0]
 
     def create_indexes(self, schema, alias, cfg):
         if alias['name'] not in {i['name'] for i in schema['indexes']}:
             return [{'name': alias['name'], 'alias': alias['name']}]
         return []
 
-    def link_indexes(self, schema, alias, cfg, new_indexes):
-        return []
-
-    def route(self, schema):
-        return self.schema['config']['index']
+    def list_indexes(self, schema, alias):
+        return [{'name': alias['name'], 'alias': alias['name']}]
 
 
 @register('date')
 class DateRoutingStrategy(RoutingStrategy):
+    Router = RangeRouter
+
     def create_indexes(self, schema, alias, cfg):
         existing = {i['name'] for i in schema['indexes']}
         return [{'name': name, 'routing': routing, 'alias': alias['name']} for name, routing in cfg['indexes'].items() if name not in existing]
 
-    def route(self, routing):
-        for index in self.indexes:
-            if routing >= index['routing']:
-                return index
-        if not index:
-            # Route map should be defined with at least one index.
-            assert False
-        # Return last index in route map.
-        return index
+    def list_indexes(self, schema, alias):
+        indexes = super(DateRoutingStrategy, self).list_indexes(schema, alias)
+        return sorted(indexes, key=lambda x: x['routing'], reverse=True)
 
 
 class CalendarRoutingStrategy(DateRoutingStrategy):
