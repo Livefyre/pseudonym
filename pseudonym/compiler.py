@@ -1,5 +1,6 @@
 import logging
 
+from pseudonym.errors import InvalidConfigError
 from pseudonym.strategy import Strategies
 
 
@@ -18,7 +19,7 @@ class SchemaCompiler(object):
         indexes_created = []
 
         for alias in config['aliases']:
-            compiled_alias = {k: v for k, v in alias.items() if k not in {'settings', 'mappings', 'strategy'}}
+            compiled_alias = {k: v for k, v in alias.items() if k not in {'settings', 'mappings'}}
             compiled_alias.setdefault('routing')
             compiled_alias.setdefault('filter')
 
@@ -51,11 +52,16 @@ class SchemaCompiler(object):
                 index_cfg['mappings'] = alias.get('mappings')
                 schema['indexes'].append(index_cfg)
 
-            index_link_args.append((compiled_alias, strategy, strategy_cfg))
+            if strategy.uses_alias:
+                index_link_args.append((compiled_alias, strategy, strategy_cfg))
 
         for alias, strategy, strategy_cfg in index_link_args:
             existing = set([i['name'] for i in alias['indexes']])
-            alias['indexes'] = [{'name': i['name'], 'alias': i['alias']} for i in strategy.link_indexes(schema, alias, strategy_cfg, indexes_created)]
+            indexes = strategy.link_indexes(schema, alias, strategy_cfg, indexes_created)
+            if not indexes:
+                raise InvalidConfigError("%s has no indexes" % alias['name'])
+            alias['indexes'] = [{'name': i['name'], 'alias': i['alias']} for i in indexes]
+
             if existing != set([i['name'] for i in alias['indexes']]):
                 has_diff = True
 

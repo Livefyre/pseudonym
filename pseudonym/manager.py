@@ -23,19 +23,14 @@ class SchemaManager(object):
     def get_current_schema(self, force=False):
         if not self._schema or force:
             self._strategies = None
-            try:
-                schema = self.client.get(index=self.schema_index, id='master')
-                source = schema.pop('_source')
-                self._schema = schema, source
-            except NotFoundError:
-                self.client.index(index=self.schema_index, id='master', doc_type=self.schema_type,
-                                  body={'aliases': [], 'indexes': []}, version=0, version_type='external')
-                self._schema = ({'_version': 0}, {'aliases': [], 'indexes': []})
+            schema = self.client.get(index=self.schema_index, id='master')
+            source = schema.pop('_source')
+            self._schema = schema, source
         return self._schema
 
     def get_router(self, alias_name):
         if alias_name not in self._routers:
-            schema = self.get_current_schema()
+            _, schema = self.get_current_schema()
             for alias in schema['aliases']:
                 if alias['name'] == alias_name:
                     break
@@ -53,8 +48,11 @@ class SchemaManager(object):
         return self._strategies
 
     def update(self, config):
-        if not self.client.indices.exists(self.schema_index):
+        if not self.client.indices.exists(index=self.schema_index):
             self.client.indices.create(index=self.schema_index)
+            self.client.index(index=self.schema_index, id='master', doc_type=self.schema_type,
+                              body={'aliases': [], 'indexes': []}, version=0, version_type='external')
+
         meta, existing = self.get_current_schema(True)
         schema = SchemaCompiler.compile(existing, config)
         if schema is None:
