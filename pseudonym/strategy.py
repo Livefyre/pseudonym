@@ -144,6 +144,8 @@ class DateRoutingStrategy(RoutingStrategy):
 
     def list_indexes(self, schema, alias):
         indexes = super(DateRoutingStrategy, self).list_indexes(schema, alias)
+        for index in indexes:
+            index['routing'] = datetime.datetime.strptime(index['routing'], '%Y-%m-%dT%H:%M:%S')
         return sorted(indexes, key=lambda x: x['routing'], reverse=True)
 
 

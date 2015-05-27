@@ -44,7 +44,7 @@ class SchemaManager(object):
     def strategies(self):
         _, schema = self.get_current_schema()
         if not self._strategies:
-            self._strategies = {a['name']: Strategies[a['strategy']].instance() for a in schema['aliases']}
+            self._strategies = {a['name']: Strategies[a['strategy'].keys()[0]].instance() for a in schema['aliases']}
         return self._strategies
 
     def update(self, config):
@@ -67,7 +67,7 @@ class SchemaManager(object):
         SchemaEnforcer(self.client).enforce(self.get_current_schema(True)[1])
 
     def route(self, alias, routing):
-        return self.get_router(alias).route(routing)
+        return self.get_router(alias).route(routing)['name']
 
     def reload(self):
         self.get_current_schema(True)
