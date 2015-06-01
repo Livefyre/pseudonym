@@ -59,7 +59,7 @@ class RoutingStrategy(object):
         return indexes
 
     def list_indexes(self, schema, alias):
-        return [i for i in schema['indexes'] if i['name'] in {i['name'] for i in alias['indexes']}]
+        return [i for i in schema['indexes'] if i['name'] in set(alias['indexes'])]
 
     def get_router(self, schema, alias):
         if not self.Router:
