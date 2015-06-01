@@ -13,6 +13,10 @@ def register(name):
     return dec
 
 
+def str_to_slice(slice_str):
+    return slice(*[int(k) if k else None for k in slice_str.split(':')])
+
+
 class BaseRouter(object):
     def __init__(self, indexes, alias):
         self.indexes = indexes
@@ -51,7 +55,7 @@ class RoutingStrategy(object):
         indexes = alias['indexes'][:]
         for index in new_indexes:
             if index['alias'] == alias['name']:
-                indexes.append(index)
+                indexes.append(index['name'])
         return indexes
 
     def list_indexes(self, schema, alias):
@@ -69,7 +73,7 @@ class IndexPointerStrategy(RoutingStrategy):
         return []
 
     def link_indexes(self, schema, alias, cfg, new_indexes):
-        return [i for i in schema['indexes'] if i['name'] in set(cfg['indexes'])]
+        return [i['name'] for i in schema['indexes'] if i['name'] in set(cfg['indexes'])]
 
 
 @register('appending_pointer')
@@ -80,11 +84,26 @@ class AppendingPointerStrategy(RoutingStrategy):
     def link_indexes(self, schema, alias, cfg, new_indexes):
         indexes = alias['indexes'][:]
 
+        if not indexes:
+            indexes = self._get_initial(schema, alias, cfg)
+
         for index in new_indexes:
             if index['alias'] in cfg['aliases']:
-                indexes.append(index)
+                indexes.append(index['name'])
 
         return indexes
+
+    def _get_initial(self, schema, alias, cfg):
+        indexes = [index for index in schema['indexes'] if index['alias'] in cfg['aliases']]
+
+        try:
+            indexes = sorted(indexes, key=lambda x: x['routing'], reverse=True)
+        except KeyError:
+            raise InvalidConfigError("Appending pointer targets must have routing.")
+
+        if 'initial' in cfg:
+            indexes = indexes[str_to_slice(cfg['initial'])]
+        return [i['name'] for i in indexes]
 
 
 @register('alias_pointer')
@@ -106,8 +125,8 @@ class AliasPointerStrategy(RoutingStrategy):
         if 'slice' in cfg:
             if not is_sorted:
                 raise InvalidConfigError("Indexes must use routing to be sliced.")
-            indexes = indexes[slice(*[int(k) if k else None for k in cfg['slice'].split(':')])]
-        return indexes
+            indexes = indexes[str_to_slice(cfg['slice'])]
+        return [i['name'] for i in indexes]
 
     def list_indexes(self, schema, alias):
         indexes = super(AliasPointerStrategy, self).list_indexes(schema, alias)
@@ -145,7 +164,8 @@ class DateRoutingStrategy(RoutingStrategy):
     def list_indexes(self, schema, alias):
         indexes = super(DateRoutingStrategy, self).list_indexes(schema, alias)
         for index in indexes:
-            index['routing'] = datetime.datetime.strptime(index['routing'], '%Y-%m-%dT%H:%M:%S')
+            if not isinstance(index['routing'], datetime.datetime):
+                index['routing'] = datetime.datetime.strptime(index['routing'], '%Y-%m-%dT%H:%M:%S')
         return sorted(indexes, key=lambda x: x['routing'], reverse=True)
 
 

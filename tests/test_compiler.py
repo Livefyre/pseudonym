@@ -7,19 +7,21 @@ from pseudonym.strategy import MonthlyRoutingStrategy
 
 class TestSimplePointerStrategy(unittest.TestCase):
     def test(self):
+        strategy = {'index_pointer': {'indexes': ['a', 'b']}}
         existing = {'aliases': [], 'indexes': [{'name': name, 'alias': 'something'} for name in ['a', 'b', 'c']]}
-        cfg = {'aliases': [{'name': 'test', 'strategy': {'index_pointer': {'indexes': ['a', 'b']}}}]}
+        cfg = {'aliases': [{'name': 'test', 'strategy': strategy}]}
         schema = SchemaCompiler.compile(existing, cfg)
 
         test_schema = {'indexes': existing['indexes'],
                        'aliases': [{'name': 'test',
-                                    'indexes': [{'name': name, 'alias': 'something'} for name in ['a', 'b']],
+                                    'indexes': ['a', 'b'],
                                     'filter': None,
-                                    'routing': None}]
+                                    'routing': None,
+                                    'strategy': strategy}]
                        }
         self.assertEqual(schema, test_schema)
         cfg['aliases'][0]['strategy']['index_pointer']['indexes'].append('c')
-        test_schema['aliases'][0]['indexes'].append({'name': 'c', 'alias': 'something'})
+        test_schema['aliases'][0]['indexes'].append('c')
         schema = SchemaCompiler.compile(schema, cfg)
         self.assertEqual(schema, test_schema)
         self.assertIsNone(SchemaCompiler.compile(schema, cfg))
@@ -27,41 +29,64 @@ class TestSimplePointerStrategy(unittest.TestCase):
 
 class TestAppendingPointerStrategy(unittest.TestCase):
     def test(self):
-        existing = {'aliases': [], 'indexes': [{'name': 'a', 'alias': 'target'}, {'name': 'b', 'alias': 'something'}]}
-        cfg = {'aliases': [{'name': 'test', 'strategy': {'appending_pointer': {'aliases': ['target']}}}]}
+        strategy = {'appending_pointer': {'aliases': ['target']}}
+        existing = {'aliases': [], 'indexes': [{'name': 'a', 'routing': 'a', 'alias': 'target'},
+                                               {'name': 'b', 'routing': 'b', 'alias': 'something'}]}
+        cfg = {'aliases': [{'name': 'test', 'strategy': strategy}]}
         schema = SchemaCompiler.compile(existing, cfg)
 
         test_schema = {'indexes': existing['indexes'],
                        'aliases': [{'name': 'test',
-                                    'indexes': [],
+                                    'indexes': ['a'],
                                     'filter': None,
-                                    'routing': None}]
+                                    'routing': None,
+                                    'strategy': strategy}]
                        }
         self.assertEqual(schema, test_schema)
         cfg['aliases'].append({'name': 'target', 'strategy': 'single'})
         test_schema['indexes'].append({'alias': 'target', 'mappings': None, 'name': 'target', 'settings': None})
-        test_schema['aliases'][0]['indexes'].append({'name': 'target', 'alias': 'target'})
+        test_schema['aliases'][0]['indexes'].append('target')
         schema = SchemaCompiler.compile(schema, cfg)
         self.assertEqual(schema, test_schema)
         self.assertIsNone(SchemaCompiler.compile(schema, cfg))
 
-
-class TestAliasPointerStrategy(unittest.TestCase):
-    def test(self):
-        existing = {'aliases': [], 'indexes': [{'name': 'a', 'alias': 'target'}, {'name': 'b', 'alias': 'something'}]}
-        cfg = {'aliases': [{'name': 'test', 'strategy': {'alias_pointer': {'aliases': ['target']}}}]}
+    def test_initial_slice(self):
+        strategy = {'appending_pointer': {'aliases': ['target'], 'initial': '-1'}}
+        existing = {'aliases': [], 'indexes': [{'name': name, 'routing': name, 'alias': 'target'} for name in ['a', 'b']]}
+        cfg = {'aliases': [{'name': 'test', 'strategy': strategy}]}
         schema = SchemaCompiler.compile(existing, cfg)
 
         test_schema = {'indexes': existing['indexes'],
                        'aliases': [{'name': 'test',
-                                    'indexes': [{'name': 'a', 'alias': 'target'}],
+                                    'indexes': ['b'],
                                     'filter': None,
-                                    'routing': None}]
+                                    'routing': None,
+                                    'strategy': strategy}]
                        }
+        self.assertEqual(schema, test_schema)
+
+
+class TestAliasPointerStrategy(unittest.TestCase):
+    maxDiff = None
+
+    def test(self):
+        existing = {'aliases': [], 'indexes': [{'name': 'a', 'alias': 'target'}, {'name': 'b', 'alias': 'something'}]}
+        strategy = {'alias_pointer': {'aliases': ['target']}}
+        cfg = {'aliases': [{'name': 'test', 'strategy': strategy}]}
+        schema = SchemaCompiler.compile(existing, cfg)
+
+        test_schema = {'indexes': existing['indexes'],
+                       'aliases': [{'name': 'test',
+                                    'indexes': ['a'],
+                                    'filter': None,
+                                    'routing': None,
+                                    'strategy': strategy}]
+                       }
+
         self.assertEqual(schema, test_schema)
         cfg['aliases'].append({'name': 'target', 'strategy': 'single'})
         test_schema['indexes'].append({'alias': 'target', 'mappings': None, 'name': 'target', 'settings': None})
-        test_schema['aliases'][0]['indexes'].append({'name': 'target', 'alias': 'target'})
+        test_schema['aliases'][0]['indexes'].append('target')
         schema = SchemaCompiler.compile(schema, cfg)
         self.assertEqual(schema, test_schema)
         self.assertIsNone(SchemaCompiler.compile(schema, cfg))
@@ -72,19 +97,21 @@ class TestAliasPointerStrategy(unittest.TestCase):
 class TestDateRoutingStrategy(unittest.TestCase):
     def test(self):
         existing = {'aliases': [], 'indexes': []}
-        cfg = {'aliases': [{'name': 'test', 'strategy': {'date': {'indexes': {'201401': datetime.date(2014, 1, 1)}}}}]}
+        strategy = {'date': {'indexes': {'201401': datetime.date(2014, 1, 1)}}}
+        cfg = {'aliases': [{'name': 'test', 'strategy': strategy}]}
         schema = SchemaCompiler.compile(existing, cfg)
         test_schema = {'indexes': [{'alias': 'test', 'mappings': None, 'name': '201401', 'settings': None, 'routing': datetime.date(2014, 1, 1)}],
                        'aliases': [{'name': 'test',
-                                    'indexes': [{'name': '201401', 'alias': 'test'}],
+                                    'indexes': ['201401'],
                                     'filter': None,
-                                    'routing': None}]
+                                    'routing': None,
+                                    'strategy': strategy}]
                        }
 
         self.assertEqual(schema, test_schema)
         cfg['aliases'][0]['strategy']['date']['indexes']['201402'] = datetime.date(2014, 2, 1)
         test_schema['indexes'].append({'alias': 'test', 'mappings': None, 'name': '201402', 'settings': None, 'routing': datetime.date(2014, 2, 1)})
-        test_schema['aliases'][0]['indexes'].append({'name': '201402', 'alias': 'test'})
+        test_schema['aliases'][0]['indexes'].append('201402')
         schema = SchemaCompiler.compile(schema, cfg)
         self.assertEqual(schema, test_schema)
         self.assertIsNone(SchemaCompiler.compile(schema, cfg))
@@ -93,20 +120,22 @@ class TestDateRoutingStrategy(unittest.TestCase):
 class TestMonthlyRoutingStrategy(unittest.TestCase):
     def test(self):
         existing = {'aliases': [], 'indexes': []}
-        cfg = {'aliases': [{'name': 'test', 'strategy': {'monthly': {'index_name_pattern': '%Y%m'}}}]}
+        strategy = {'monthly': {'index_name_pattern': '%Y%m'}}
+        cfg = {'aliases': [{'name': 'test', 'strategy': strategy}]}
         MonthlyRoutingStrategy.instance(MonthlyRoutingStrategy(lambda: datetime.date(2014, 1, 1)))
         schema = SchemaCompiler.compile(existing, cfg)
         test_schema = {'indexes': [{'alias': 'test', 'mappings': None, 'name': '201402', 'settings': None, 'routing': datetime.datetime(2014, 2, 1)}],
                        'aliases': [{'name': 'test',
-                                    'indexes': [{'name': '201402', 'alias': 'test'}],
+                                    'indexes': ['201402'],
                                     'filter': None,
-                                    'routing': None}]
+                                    'routing': None,
+                                    'strategy': strategy}]
                        }
 
         self.assertEqual(schema, test_schema)
         MonthlyRoutingStrategy.instance(MonthlyRoutingStrategy(lambda: datetime.date(2014, 2, 1)))
         test_schema['indexes'].append({'alias': 'test', 'mappings': None, 'name': '201403', 'settings': None, 'routing': datetime.datetime(2014, 3, 1)})
-        test_schema['aliases'][0]['indexes'].append({'name': '201403', 'alias': 'test'})
+        test_schema['aliases'][0]['indexes'].append('201403')
         schema = SchemaCompiler.compile(schema, cfg)
         self.assertEqual(schema, test_schema)
         self.assertIsNone(SchemaCompiler.compile(schema, cfg))

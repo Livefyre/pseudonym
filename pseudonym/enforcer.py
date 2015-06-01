@@ -48,4 +48,4 @@ class SchemaEnforcer(object):
 
     def create_alias(self, alias):
         body = {key: alias[key] for key in ['routing', 'filter'] if key in alias}
-        self.client.indices.put_alias(index=[i['name'] for i in alias['indexes']], name=alias['name'], body=body)
+        self.client.indices.put_alias(index=alias['indexes'], name=alias['name'], body=body)

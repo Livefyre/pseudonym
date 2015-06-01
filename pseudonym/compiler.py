@@ -56,13 +56,13 @@ class SchemaCompiler(object):
                 index_link_args.append((compiled_alias, strategy, strategy_cfg))
 
         for alias, strategy, strategy_cfg in index_link_args:
-            existing = set([i['name'] for i in alias['indexes']])
+            existing = set(alias['indexes'])
             indexes = strategy.link_indexes(schema, alias, strategy_cfg, indexes_created)
             if not indexes:
                 raise InvalidConfigError("%s has no indexes" % alias['name'])
-            alias['indexes'] = [{'name': i['name'], 'alias': i['alias']} for i in indexes]
+            alias['indexes'] = indexes
 
-            if existing != set([i['name'] for i in alias['indexes']]):
+            if existing != set(alias['indexes']):
                 has_diff = True
 
         if not has_diff:
