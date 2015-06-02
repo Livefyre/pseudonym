@@ -188,5 +188,5 @@ class CalendarRoutingStrategy(DateRoutingStrategy):
 class MonthlyRoutingStrategy(CalendarRoutingStrategy):
     def get_next(self, cfg):
         today = self.today()
-        next_month = datetime.datetime(today.year + (1 if today.month == 12 else 0), (today.month + 1) % 12, 1)
-        return {'name': next_month.strftime(cfg['index_name_pattern']), 'routing': next_month.isoformat()}
+        this_month = datetime.datetime(today.year, today.month, 1)
+        return {'name': this_month.strftime(cfg['index_name_pattern']), 'routing': this_month.isoformat()}
