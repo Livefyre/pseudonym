@@ -163,7 +163,12 @@ class DateRoutingStrategy(RoutingStrategy):
 
     def list_indexes(self, schema, alias):
         indexes = super(DateRoutingStrategy, self).list_indexes(schema, alias)
-        return sorted(indexes, key=lambda x: x['routing'], reverse=True)
+        adapted_indexes = []
+        for index in indexes:
+            adapted_index = index.copy()
+            adapted_index['routing'] = datetime.datetime.strptime(index['routing'], '%Y-%m-%dT%H:%M:%S')
+            adapted_indexes.append(adapted_index)
+        return sorted(adapted_indexes, key=lambda x: x['routing'], reverse=True)
 
 
 class CalendarRoutingStrategy(DateRoutingStrategy):

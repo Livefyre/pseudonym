@@ -14,8 +14,8 @@ class TestNoRouting(unittest.TestCase):
 class TestDateStrategyRouting(unittest.TestCase):
     def test(self):
         schema = {'aliases': [{'name': 'alias1', 'indexes': ['201401', '201402']}],
-                  'indexes': [{'name': '201401', 'routing': datetime.datetime(2014, 1, 1)},
-                              {'name': '201402', 'routing': datetime.datetime(2014, 2, 1)}]}
+                  'indexes': [{'name': '201401', 'routing': datetime.datetime(2014, 1, 1).isoformat()},
+                              {'name': '201402', 'routing': datetime.datetime(2014, 2, 1).isoformat()}]}
         router = Strategies['date'].instance().get_router(schema, schema['aliases'][0])
         self.assertEqual(router.route(datetime.datetime(2013, 12, 1))['name'], '201401')
         self.assertEqual(router.route(datetime.datetime(2014, 1, 1))['name'], '201401')
