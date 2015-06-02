@@ -47,5 +47,19 @@ class SchemaEnforcer(object):
                     raise
 
     def create_alias(self, alias):
-        body = {key: alias[key] for key in ['routing', 'filter'] if key in alias}
-        self.client.indices.put_alias(index=alias['indexes'], name=alias['name'], body=body)
+        existing = set(self.client.indices.get_alias(alias['name']))
+
+        actions = []
+
+        for index in alias['indexes']:
+            if index in existing:
+                existing.discard(index)
+                continue
+            body = {'index': index, 'alias': alias['name']}
+            body.update({key: alias[key] for key in ['routing', 'filter'] if key in alias})
+            actions.append({'add': body})
+        for index in existing:
+            actions.append({'remove': {'index': index, 'alias': alias['name']}})
+
+        if actions:
+            self.client.indices.update_aliases({'actions': actions})

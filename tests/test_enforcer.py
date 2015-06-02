@@ -17,7 +17,7 @@ class TestEnforcer(unittest.TestCase):
     def test(self):
         SchemaEnforcer(self.client).enforce({'indexes': [{'name': 'test_index_1', 'mappings': {'test_type': {'properties': {'field1': {'type': 'string'}}}}},
                                                          {'name': 'test_index_2'}],
-                                             'aliases': [{'name': 'test_alias_1', 'indexes': [{'name': 'test_index_1'}], 'routing': 'routing', 'filter': {'term': {'field1': 'val1'}}}]})
+                                             'aliases': [{'name': 'test_alias_1', 'indexes': ['test_index_1'], 'routing': 'routing', 'filter': {'term': {'field1': 'val1'}}}]})
 
         test_index_1 = self.client.indices.get('test_index_1')['test_index_1']
         self.assertIn('test_alias_1', test_index_1['aliases'])
@@ -28,3 +28,20 @@ class TestEnforcer(unittest.TestCase):
         self.assertEqual(test_index_1['mappings'], {u'test_type': {u'properties': {u'field1': {u'type': u'string'}}}})
         test_index_2 = self.client.indices.get('test_index_2')
         self.assertNotIn('aliases', test_index_2)
+
+    def test_reassociate_alias(self):
+        schema = {'indexes': [{'name': 'test_index_1', 'mappings': {'test_type': {'properties': {'field1': {'type': 'string'}}}}},
+                              {'name': 'test_index_2'}],
+                  'aliases': [{'name': 'test_alias_1', 'indexes': ['test_index_1']}]}
+        SchemaEnforcer(self.client).enforce(schema)
+        test_index_1 = self.client.indices.get('test_index_1')['test_index_1']
+        self.assertIn('test_alias_1', test_index_1['aliases'])
+        test_index_2 = self.client.indices.get('test_index_2')
+        self.assertNotIn('aliases', test_index_2)
+
+        schema['aliases'][0]['indexes'][0] = 'test_index_2'
+        SchemaEnforcer(self.client).enforce(schema)
+        test_index_1 = self.client.indices.get('test_index_1')['test_index_1']
+        self.assertNotIn('test_alias_1', test_index_1.get('aliases', []))
+        test_index_2 = self.client.indices.get('test_index_2')['test_index_2']
+        self.assertIn('test_alias_1', test_index_2['aliases'])

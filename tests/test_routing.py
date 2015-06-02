@@ -13,7 +13,7 @@ class TestNoRouting(unittest.TestCase):
 
 class TestDateStrategyRouting(unittest.TestCase):
     def test(self):
-        schema = {'aliases': [{'name': 'alias1', 'indexes': [{'name': '201401'}, {'name': '201402'}]}],
+        schema = {'aliases': [{'name': 'alias1', 'indexes': ['201401', '201402']}],
                   'indexes': [{'name': '201401', 'routing': datetime.datetime(2014, 1, 1)},
                               {'name': '201402', 'routing': datetime.datetime(2014, 2, 1)}]}
         router = Strategies['date'].instance().get_router(schema, schema['aliases'][0])
