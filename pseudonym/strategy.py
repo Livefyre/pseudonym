@@ -82,16 +82,16 @@ class AppendingPointerStrategy(RoutingStrategy):
         return []
 
     def link_indexes(self, schema, alias, cfg, new_indexes):
-        indexes = alias['indexes'][:]
+        indexes = set(alias['indexes'][:])
 
         if not indexes:
             indexes = self._get_initial(schema, alias, cfg)
 
         for index in new_indexes:
             if index['alias'] in cfg['aliases']:
-                indexes.append(index['name'])
+                indexes.add(index['name'])
 
-        return indexes
+        return list(indexes)
 
     def _get_initial(self, schema, alias, cfg):
         indexes = [index for index in schema['indexes'] if index['alias'] in cfg['aliases']]
@@ -103,7 +103,7 @@ class AppendingPointerStrategy(RoutingStrategy):
 
         if 'initial' in cfg:
             indexes = indexes[str_to_slice(cfg['initial'])]
-        return [i['name'] for i in indexes]
+        return set([i['name'] for i in indexes])
 
 
 @register('alias_pointer')
@@ -163,9 +163,6 @@ class DateRoutingStrategy(RoutingStrategy):
 
     def list_indexes(self, schema, alias):
         indexes = super(DateRoutingStrategy, self).list_indexes(schema, alias)
-        for index in indexes:
-            if not isinstance(index['routing'], datetime.datetime):
-                index['routing'] = datetime.datetime.strptime(index['routing'], '%Y-%m-%dT%H:%M:%S')
         return sorted(indexes, key=lambda x: x['routing'], reverse=True)
 
 
@@ -187,4 +184,4 @@ class MonthlyRoutingStrategy(CalendarRoutingStrategy):
     def get_next(self, cfg):
         today = self.today()
         next_month = datetime.datetime(today.year + (1 if today.month == 12 else 0), (today.month + 1) % 12, 1)
-        return {'name': next_month.strftime(cfg['index_name_pattern']), 'routing': next_month}
+        return {'name': next_month.strftime(cfg['index_name_pattern']), 'routing': next_month.isoformat()}

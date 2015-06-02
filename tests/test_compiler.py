@@ -124,7 +124,7 @@ class TestMonthlyRoutingStrategy(unittest.TestCase):
         cfg = {'aliases': [{'name': 'test', 'strategy': strategy}]}
         MonthlyRoutingStrategy.instance(MonthlyRoutingStrategy(lambda: datetime.date(2014, 1, 1)))
         schema = SchemaCompiler.compile(existing, cfg)
-        test_schema = {'indexes': [{'alias': 'test', 'mappings': None, 'name': '201402', 'settings': None, 'routing': datetime.datetime(2014, 2, 1)}],
+        test_schema = {'indexes': [{'alias': 'test', 'mappings': None, 'name': '201402', 'settings': None, 'routing': '2014-02-01T00:00:00'}],
                        'aliases': [{'name': 'test',
                                     'indexes': ['201402'],
                                     'filter': None,
@@ -134,7 +134,7 @@ class TestMonthlyRoutingStrategy(unittest.TestCase):
 
         self.assertEqual(schema, test_schema)
         MonthlyRoutingStrategy.instance(MonthlyRoutingStrategy(lambda: datetime.date(2014, 2, 1)))
-        test_schema['indexes'].append({'alias': 'test', 'mappings': None, 'name': '201403', 'settings': None, 'routing': datetime.datetime(2014, 3, 1)})
+        test_schema['indexes'].append({'alias': 'test', 'mappings': None, 'name': '201403', 'settings': None, 'routing': '2014-03-01T00:00:00'})
         test_schema['aliases'][0]['indexes'].append('201403')
         schema = SchemaCompiler.compile(schema, cfg)
         self.assertEqual(schema, test_schema)
