@@ -12,9 +12,15 @@ class SchemaCompiler(object):
     def compile(cls, existing, config):
         existing_aliases = {a['name']: a for a in existing.get('aliases', [])}
         schema = {'aliases': existing['aliases'][:],
-                  'indexes': existing['indexes'][:]}
+                  'indexes': existing['indexes'][:],
+                  'templates': existing.get('templates', {})}
 
         has_diff = False
+        existing_templates = schema['templates'].copy()
+        schema['templates'].update(config.get('templates', {}))
+        if schema['templates'] != existing_templates:
+            has_diff = True
+
         index_link_args = []
         indexes_created = []
 

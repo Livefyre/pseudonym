@@ -11,6 +11,10 @@ class SchemaEnforcer(object):
         self.client = client
 
     def enforce(self, schema):
+        for name, template in schema['templates'].items():
+            logger.info("Creating template %s" % name)
+            self.client.indices.put_template(name=name, body=template)
+
         for index in schema['indexes']:
             logger.info("Creating index %s" % index['name'])
             self.create_index(index)

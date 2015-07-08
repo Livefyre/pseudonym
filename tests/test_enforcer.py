@@ -15,9 +15,10 @@ class TestEnforcer(unittest.TestCase):
                 pass
 
     def test(self):
-        SchemaEnforcer(self.client).enforce({'indexes': [{'name': 'test_index_1', 'mappings': {'test_type': {'properties': {'field1': {'type': 'string'}}}}},
+        SchemaEnforcer(self.client).enforce({'indexes': [{'name': 'test_index_1'},
                                                          {'name': 'test_index_2'}],
-                                             'aliases': [{'name': 'test_alias_1', 'indexes': ['test_index_1'], 'routing': 'routing', 'filter': {'term': {'field1': 'val1'}}}]})
+                                             'aliases': [{'name': 'test_alias_1', 'indexes': ['test_index_1'], 'routing': 'routing', 'filter': {'term': {'field1': 'val1'}}}],
+                                             'templates': {'test_alias_1': {'template': 'test_index*', 'mappings': {'test_type': {'properties': {'field1': {'type': 'string'}}}}}}})
 
         test_index_1 = self.client.indices.get('test_index_1')['test_index_1']
         self.assertIn('test_alias_1', test_index_1['aliases'])
@@ -32,7 +33,8 @@ class TestEnforcer(unittest.TestCase):
     def test_reassociate_alias(self):
         schema = {'indexes': [{'name': 'test_index_1', 'mappings': {'test_type': {'properties': {'field1': {'type': 'string'}}}}},
                               {'name': 'test_index_2'}],
-                  'aliases': [{'name': 'test_alias_1', 'indexes': ['test_index_1']}]}
+                  'aliases': [{'name': 'test_alias_1', 'indexes': ['test_index_1']}],
+                  'templates': {'test_alias_1': {'template': 'test_index*', 'mappings': {'test_type': {'properties': {'field1': {'type': 'string'}}}}}}}
         SchemaEnforcer(self.client).enforce(schema)
         test_index_1 = self.client.indices.get('test_index_1')['test_index_1']
         self.assertIn('test_alias_1', test_index_1['aliases'])
