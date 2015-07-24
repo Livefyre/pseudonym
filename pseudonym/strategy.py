@@ -26,6 +26,11 @@ class BaseRouter(object):
         raise NotImplementedError()
 
 
+class AliasRouter(BaseRouter):
+    def route(self, _):
+        return self.alias
+
+
 class RangeRouter(BaseRouter):
     def route(self, routing):
         for index in self.indexes:
@@ -134,6 +139,16 @@ class AliasPointerStrategy(RoutingStrategy):
             return sorted(indexes, key=lambda x: x['routing'], reverse=True)
         except KeyError:
             raise RoutingException("Cannot route to AliasPointerStrategy alias without routing parameter.")
+
+
+@register('latest_index')
+class LatestIndexStrategy(AliasPointerStrategy):
+    Router = AliasRouter
+
+    def link_indexes(self, schema, alias, cfg, new_indexes):
+        cfg = cfg.copy()
+        cfg['slice'] = ':1'
+        return super(LatestIndexStrategy, self).link_indexes(schema, alias, cfg, new_indexes)
 
 
 @register('single')
