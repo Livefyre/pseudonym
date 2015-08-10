@@ -42,6 +42,9 @@ class RangeRouter(BaseRouter):
         return index
 
 
+_INST = {}
+
+
 class RoutingStrategy(object):
     uses_alias = True
     Router = None
@@ -51,10 +54,10 @@ class RoutingStrategy(object):
     @classmethod
     def instance(cls, inst=None):
         if inst:
-            cls.__instance = inst
-        if not cls.__instance:
-            cls.__instance = cls()
-        return cls.__instance
+            _INST[cls] = inst
+        elif cls not in _INST:
+            _INST[cls] = cls()
+        return _INST[cls]
 
     def link_indexes(self, indexes, alias, cfg, new_indexes):
         indexes = alias['indexes'][:]
@@ -205,3 +208,11 @@ class MonthlyRoutingStrategy(CalendarRoutingStrategy):
         today = self.today()
         this_month = datetime.datetime(today.year, today.month, 1)
         return {'name': this_month.strftime(cfg['index_name_pattern']), 'routing': this_month.isoformat()}
+
+
+@register('annual')
+class AnnualRoutingStrategy(CalendarRoutingStrategy):
+    def get_next(self, cfg):
+        today = self.today()
+        this_year = datetime.datetime(today.year, 1, 1)
+        return {'name': this_year.strftime(cfg['index_name_pattern']), 'routing': this_year.isoformat()}
