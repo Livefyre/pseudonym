@@ -2,7 +2,8 @@ import logging
 
 from pseudonym.errors import InvalidConfigError
 from pseudonym.strategy import Strategies
-
+from pseudonym.filter import IndexFilter
+from pseudonym.models import Index
 
 logger = logging.getLogger(__name__)
 
@@ -62,15 +63,27 @@ class SchemaCompiler(object):
                 index_link_args.append((compiled_alias, strategy, strategy_cfg))
 
         for alias, strategy, strategy_cfg in index_link_args:
-            existing = set(alias['indexes'])
+            existing_indexes = set(alias['indexes'])
             indexes = strategy.link_indexes(schema, alias, strategy_cfg, indexes_created)
             if not indexes:
                 raise InvalidConfigError("%s has no indexes" % alias['name'])
             alias['indexes'] = indexes
 
-            if existing != set(alias['indexes']):
+            if existing_indexes != set(alias['indexes']):
                 has_diff = True
+
+        settings = [cls.compile_settings(schema, s_config) for s_config in config.get('settings', [])]
+        has_diff = has_diff or settings != existing.get('settings')
 
         if not has_diff:
             return None
+
+        schema['settings'] = settings
         return schema
+
+    @classmethod
+    def compile_settings(cls, schema, s_config):
+        index_filter = IndexFilter(**s_config['filter'])
+        indexes = [Index(**i) for i in schema['indexes']]
+        return {'indexes': [i.name for i in index_filter.filter(indexes)],
+                'settings': s_config['settings']}

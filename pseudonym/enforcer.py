@@ -23,6 +23,9 @@ class SchemaEnforcer(object):
             logger.info("Creating alias %s" % alias['name'])
             self.create_alias(alias)
 
+        for setting_cfg in schema['settings']:
+            self.apply_settings(setting_cfg)
+
     def create_index(self, index):
         body = {}
         if index.get('mappings'):
@@ -67,3 +70,7 @@ class SchemaEnforcer(object):
 
         if actions:
             self.client.indices.update_aliases({'actions': actions})
+
+    def apply_settings(self, setting_cfg):
+        print 'putting settings to %s, body=%s' % (','.join(setting_cfg['indexes']), setting_cfg['settings'])
+        self.client.indices.put_settings(index=','.join(setting_cfg['indexes']), body=setting_cfg['settings'])

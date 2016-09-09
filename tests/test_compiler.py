@@ -18,7 +18,8 @@ class TestSimplePointerStrategy(unittest.TestCase):
                                     'filter': None,
                                     'routing': None,
                                     'strategy': strategy}],
-                       'templates': {'a': {'name': 'A'}}
+                       'templates': {'a': {'name': 'A'}},
+                       'settings': []
                        }
         self.assertEqual(schema, test_schema)
         cfg['aliases'][0]['strategy']['index_pointer']['indexes'].append('c')
@@ -42,7 +43,7 @@ class TestAppendingPointerStrategy(unittest.TestCase):
                                     'filter': None,
                                     'routing': None,
                                     'strategy': strategy}],
-                       'templates': {}
+                       'templates': {}, 'settings': []
                        }
         self.assertEqual(schema, test_schema)
         cfg['aliases'].append({'name': 'target', 'strategy': 'single'})
@@ -64,7 +65,7 @@ class TestAppendingPointerStrategy(unittest.TestCase):
                                     'filter': None,
                                     'routing': None,
                                     'strategy': strategy}],
-                       'templates': {}
+                       'templates': {}, 'settings': []
                        }
         self.assertEqual(schema, test_schema)
 
@@ -84,7 +85,7 @@ class TestAliasPointerStrategy(unittest.TestCase):
                                     'filter': None,
                                     'routing': None,
                                     'strategy': strategy}],
-                       'templates': {}
+                       'templates': {}, 'settings': []
                        }
 
         self.assertEqual(schema, test_schema)
@@ -110,7 +111,7 @@ class TestDateRoutingStrategy(unittest.TestCase):
                                     'filter': None,
                                     'routing': None,
                                     'strategy': strategy}],
-                       'templates': {}
+                       'templates': {}, 'settings': []
                        }
 
         self.assertEqual(schema, test_schema)
@@ -135,7 +136,7 @@ class TestMonthlyRoutingStrategy(unittest.TestCase):
                                     'filter': None,
                                     'routing': None,
                                     'strategy': strategy}],
-                       'templates': {}
+                       'templates': {}, 'settings': []
                        }
 
         self.assertEqual(schema, test_schema)
@@ -145,3 +146,19 @@ class TestMonthlyRoutingStrategy(unittest.TestCase):
         schema = SchemaCompiler.compile(schema, cfg)
         self.assertEqual(schema, test_schema)
         self.assertIsNone(SchemaCompiler.compile(schema, cfg))
+
+
+class TestSettings(unittest.TestCase):
+    def test(self):
+        indexes = [{'alias': 'alias_1', 'name': 'test_index_%s' % v, 'routing': v} for v in range(3)]
+        existing = {'aliases': [{'name': 'alias_1', 'indexes': [index['name'] for index in indexes]}],
+                    'indexes': indexes, 'templates': {}}
+        cfg = {'settings': [{'filter': {'slice': ':2', 'aliases': ['alias_1']},
+                             'settings': {"index.routing.allocation.require.storage_type": "a"}}],
+               'aliases': []}
+
+        schema = SchemaCompiler.compile(existing, cfg)
+        test_schema = existing.copy()
+        test_schema['settings'] = [{'indexes': ['test_index_2', 'test_index_1'],
+                                    'settings': {"index.routing.allocation.require.storage_type": "a"}}]
+        self.assertEqual(schema, test_schema)
