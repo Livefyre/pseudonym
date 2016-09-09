@@ -1,6 +1,9 @@
 import datetime
 from pseudonym.errors import InvalidConfigError
 from pseudonym.errors import RoutingException
+from pseudonym.filter import IndexFilter
+from pseudonym.models import Index
+from pseudonym.filter import str_to_slice
 
 
 Strategies = {}
@@ -11,10 +14,6 @@ def register(name):
         Strategies[name] = cls
         return cls
     return dec
-
-
-def str_to_slice(slice_str):
-    return slice(*[int(k) if k else None for k in slice_str.split(':')])
 
 
 class BaseRouter(object):
@@ -122,19 +121,8 @@ class AliasPointerStrategy(RoutingStrategy):
         return []
 
     def link_indexes(self, schema, alias, cfg, new_indexes):
-        indexes = [i for i in schema['indexes'] if i.get('alias') in cfg['aliases']]
-        is_sorted = False
-        try:
-            indexes = sorted(indexes, key=lambda x: x['routing'], reverse=True)
-            is_sorted = True
-        except KeyError:
-            pass
-
-        if 'slice' in cfg:
-            if not is_sorted:
-                raise InvalidConfigError("Indexes must use routing to be sliced.")
-            indexes = indexes[str_to_slice(cfg['slice'])]
-        return [i['name'] for i in indexes]
+        index_filter = IndexFilter(aliases=cfg['aliases'], slice=cfg.get('slice'))
+        return [index.name for index in index_filter.filter([Index(**i) for i in schema['indexes']])]
 
     def list_indexes(self, schema, alias):
         indexes = super(AliasPointerStrategy, self).list_indexes(schema, alias)
