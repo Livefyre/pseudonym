@@ -38,7 +38,8 @@ class SchemaEnforcer(object):
             self.client.indices.create(index=index['name'], body=body)
             return
         except RequestError, e:
-            if 'index_already_exists_exception' not in e.error:
+            # index_already_exists_exception was introduced in ES 2.x
+            if 'index_already_exists_exception' not in e.error and 'IndexAlreadyExistsException' not in e.error:
                 raise
 
         if not index.get('mappings'):
