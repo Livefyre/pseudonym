@@ -31,14 +31,14 @@ class SchemaEnforcer(object):
         if index.get('mappings'):
             body['mappings'] = index['mappings']
 
-        if 'settings' in index:
+        if index.get('settings'):
             body['settings'] = index['settings']
 
         try:
             self.client.indices.create(index=index['name'], body=body)
             return
         except RequestError, e:
-            if 'IndexAlreadyExistsException' not in e.error:
+            if 'index_already_exists_exception' not in e.error:
                 raise
 
         if not index.get('mappings'):
@@ -54,7 +54,7 @@ class SchemaEnforcer(object):
                     raise
 
     def create_alias(self, alias):
-        existing = set(self.client.indices.get_alias(alias['name']))
+        existing = set(self.client.indices.get_alias(alias['indexes']))
 
         actions = []
 
