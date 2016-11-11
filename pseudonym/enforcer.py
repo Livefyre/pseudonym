@@ -1,6 +1,6 @@
 import logging
 
-from elasticsearch.exceptions import RequestError
+from elasticsearch.exceptions import RequestError, NotFoundError
 
 
 logger = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ class SchemaEnforcer(object):
         existing = set()
         try:
             existing.update(self.client.indices.get_alias(name=alias['name']))
-        except Exception as e:
+        except NotFoundError:
             pass
 
         actions = []
