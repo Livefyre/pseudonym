@@ -1,6 +1,6 @@
 import logging
 
-from elasticsearch.exceptions import RequestError
+from elasticsearch.exceptions import RequestError, NotFoundError
 
 
 logger = logging.getLogger(__name__)
@@ -31,14 +31,15 @@ class SchemaEnforcer(object):
         if index.get('mappings'):
             body['mappings'] = index['mappings']
 
-        if 'settings' in index:
+        if index.get('settings'):
             body['settings'] = index['settings']
 
         try:
             self.client.indices.create(index=index['name'], body=body)
             return
         except RequestError, e:
-            if 'IndexAlreadyExistsException' not in e.error:
+            # index_already_exists_exception was introduced in ES 2.x
+            if 'index_already_exists_exception' not in e.error and 'IndexAlreadyExistsException' not in e.error:
                 raise
 
         if not index.get('mappings'):
@@ -54,7 +55,11 @@ class SchemaEnforcer(object):
                     raise
 
     def create_alias(self, alias):
-        existing = set(self.client.indices.get_alias(alias['name']))
+        existing = set()
+        try:
+            existing.update(self.client.indices.get_alias(name=alias['name']))
+        except NotFoundError:
+            pass
 
         actions = []
 
