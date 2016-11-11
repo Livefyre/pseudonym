@@ -54,7 +54,11 @@ class SchemaEnforcer(object):
                     raise
 
     def create_alias(self, alias):
-        existing = set(self.client.indices.get_alias(alias['indexes']))
+        existing = set()
+        try:
+            existing.update(self.client.indices.get_alias(name=alias['name']))
+        except Exception as e:
+            pass
 
         actions = []
 
