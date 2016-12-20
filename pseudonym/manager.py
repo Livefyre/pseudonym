@@ -1,12 +1,11 @@
 import logging
 import json
 
-from elasticsearch.exceptions import NotFoundError
 from pseudonym.compiler import SchemaCompiler
 from pseudonym.enforcer import SchemaEnforcer
 from pseudonym.errors import RoutingException
 from pseudonym.strategy import Strategies
-
+from pseudonym.reindexer import Reindexer
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +17,8 @@ class SchemaManager(object):
         self._schema = None
         self._strategies = None
         self._routers = {}
+        self.enforcer = SchemaEnforcer(self.client)
+        self.reindexer = Reindexer(self.client)
 
     schema_type = 'schema'
 
@@ -106,10 +107,27 @@ class SchemaManager(object):
         self.apply(meta, schema)
 
     def enforce(self):
-        SchemaEnforcer(self.client).enforce(self.get_current_schema(True)[1])
+        self.enforcer.enforce(self.get_current_schema(True)[1])
 
     def route(self, alias, routing):
         return self.get_router(alias).route(routing)['name']
 
     def reload(self):
         self.get_current_schema(True)
+
+    '''
+    ** Before this is run we need to do put mapping to include auto-update timestamp field
+    1. creates new index
+    2. updates all existing docs to include current timestamp (and saves current timestamp for catchup comparison)
+    3. reindexes all docs to new index
+    '''
+    def reindex_start(self, source_index):
+        target_index = '%s_new' % source_index
+        self.enforcer.create_index(target_index)
+        self.reindexer.reindex(source_index, target_index)
+
+    def reindex_catchup(self, source_index, reindex_start_time):
+        self.reindexer.catchup(source_index, reindex_start_time)
+
+    def reindex_cutover(self, source_index, reindex_start_time):
+        self.reindexer.cutover(source_index, reindex_start_time)

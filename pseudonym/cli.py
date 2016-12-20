@@ -4,6 +4,9 @@ Usage:
   pseudonym [options] index add <alias> <index> <routing>
   pseudonym [options] index remove <index>
   pseudonym [options] enforce
+  pseudonym [options] reindex <index>
+  pseudonym [options] reindex_catchup <index> <start_time>
+  pseudonym [options] reindex_cutover <index> <start_time>
   pseudonym (-h --help)
   pseudonym --version
 
@@ -28,3 +31,9 @@ def main():
         manager.add_index(opts['<alias>'], opts['<index>'], opts['<routing>'])
     if opts['enforce']:
         manager.enforce()
+    if opts['reindex']:
+        manager.reindex_start(opts['<index>'])
+    if opts['reindex_catchup']:
+        manager.reindex_catchup(opts['<index>'], opts['<start_time>'])
+    if opts['reindex_cutover']:
+        manager.reindex_cutover(opts['<index>'], opts['<start_time>'])
