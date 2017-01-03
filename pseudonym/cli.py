@@ -5,8 +5,7 @@ Usage:
   pseudonym [options] index remove <index>
   pseudonym [options] enforce
   pseudonym [options] reindex <index>
-  pseudonym [options] reindex_catchup <index> <start_time>
-  pseudonym [options] reindex_cutover <index> <start_time>
+  pseudonym [options] reindex_cutover <index>
   pseudonym (-h --help)
   pseudonym --version
 
@@ -32,8 +31,6 @@ def main():
     if opts['enforce']:
         manager.enforce()
     if opts['reindex']:
-        manager.reindex_start(opts['<index>'])
-    if opts['reindex_catchup']:
-        manager.reindex_catchup(opts['<index>'], opts['<start_time>'])
+        manager.reindex(opts['<index>'])
     if opts['reindex_cutover']:
-        manager.reindex_cutover(opts['<index>'], opts['<start_time>'])
+        manager.reindex_cutover(opts['<index>'])

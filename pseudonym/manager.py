@@ -53,7 +53,7 @@ class SchemaManager(object):
         return self._strategies
 
     def update(self, config):
-        if not self.client.indices.exists(index=self.schema_index):
+        if not self.enforcer.index_exists(index=self.schema_index):
             self.client.indices.create(index=self.schema_index)
             schema = {'schema': json.dumps({'aliases': [], 'indexes': []})}
             self.client.index(index=self.schema_index, id='master', doc_type=self.schema_type,
@@ -116,18 +116,17 @@ class SchemaManager(object):
         self.get_current_schema(True)
 
     '''
-    ** Before this is run we need to do put mapping to include auto-update timestamp field
-    1. creates new index
-    2. updates all existing docs to include current timestamp (and saves current timestamp for catchup comparison)
-    3. reindexes all docs to new index
+    1. creates new index during initial reindex call
+    2. reindexes all docs to new index
+    3. removes reindexed docs from old index so we can easily stop/resume reindexing at any point
     '''
-    def reindex_start(self, source_index):
+    def reindex(self, source_index):
         target_index = '%s_new' % source_index
-        self.enforcer.create_index(target_index)
+        if not self.enforcer.index_exists(index=target_index):
+            self.enforcer.create_index(target_index)
         self.reindexer.reindex(source_index, target_index)
 
-    def reindex_catchup(self, source_index, reindex_start_time):
-        self.reindexer.catchup(source_index, reindex_start_time)
+    def reindex_cutover(self, source_index):
+        _, schema = self.get_current_schema(True)
+        self.reindexer.cutover(source_index, schema)
 
-    def reindex_cutover(self, source_index, reindex_start_time):
-        self.reindexer.cutover(source_index, reindex_start_time)
