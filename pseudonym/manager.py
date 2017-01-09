@@ -1,4 +1,5 @@
 import logging
+import json
 
 from elasticsearch.exceptions import NotFoundError
 from pseudonym.compiler import SchemaCompiler
@@ -25,7 +26,10 @@ class SchemaManager(object):
             self._strategies = None
             schema = self.client.get(index=self.schema_index, id='master')
             source = schema.pop('_source')
-            self._schema = schema, source
+            schema_doc = source.get('schema')
+            if isinstance(schema_doc, basestring):
+                schema_doc = json.loads(schema_doc)
+            self._schema = schema, schema_doc
         return self._schema
 
     def get_router(self, alias_name):
@@ -50,8 +54,9 @@ class SchemaManager(object):
     def update(self, config):
         if not self.client.indices.exists(index=self.schema_index):
             self.client.indices.create(index=self.schema_index)
+            schema = {'schema': json.dumps({'aliases': [], 'indexes': []})}
             self.client.index(index=self.schema_index, id='master', doc_type=self.schema_type,
-                              body={'aliases': [], 'indexes': []}, version=0, version_type='external')
+                              body=schema, version=0, version_type='external')
 
         meta, existing = self.get_current_schema(True)
         schema = SchemaCompiler.compile(existing, config)
@@ -60,8 +65,9 @@ class SchemaManager(object):
         self.apply(meta, schema)
 
     def apply(self, meta, schema):
+        schema_doc = {'schema': json.dumps(schema)}
         self.client.index(index=self.schema_index, doc_type=self.schema_type,
-                          id='master', body=schema, refresh=True,
+                          id='master', body=schema_doc, refresh=True,
                           version=meta['_version'] + 1, version_type='external')
         self.client.create(index=self.schema_index, doc_type=self.schema_type, id=meta['_version'] + 1, body=schema)
         self._routers = {}
