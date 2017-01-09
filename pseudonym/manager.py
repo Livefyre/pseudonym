@@ -26,7 +26,7 @@ class SchemaManager(object):
             self._strategies = None
             schema = self.client.get(index=self.schema_index, id='master')
             source = schema.pop('_source')
-            schema_doc = source.get('schema')
+            schema_doc = source.get('schema', source)
             if isinstance(schema_doc, basestring):
                 schema_doc = json.loads(schema_doc)
             self._schema = schema, schema_doc
