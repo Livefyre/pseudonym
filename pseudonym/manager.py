@@ -69,7 +69,7 @@ class SchemaManager(object):
         self.client.index(index=self.schema_index, doc_type=self.schema_type,
                           id='master', body=schema_doc, refresh=True,
                           version=meta['_version'] + 1, version_type='external')
-        self.client.create(index=self.schema_index, doc_type=self.schema_type, id=meta['_version'] + 1, body=schema)
+        self.client.create(index=self.schema_index, doc_type=self.schema_type, id=meta['_version'] + 1, body=schema_doc)
         self._routers = {}
 
     def add_index(self, alias_name, index_name, routing=None):
