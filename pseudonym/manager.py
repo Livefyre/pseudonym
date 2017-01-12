@@ -120,13 +120,23 @@ class SchemaManager(object):
     2. reindexes all docs to new index
     3. removes reindexed docs from old index so we can easily stop/resume reindexing at any point
     '''
-    def reindex(self, source_index):
+    def reindex(self, source_index, sleep_time):
         target_index = '%s_new' % source_index
         if not self.enforcer.index_exists(index=target_index):
             self.enforcer.create_index(target_index)
-        self.reindexer.reindex(source_index, target_index)
+        self.reindexer.do_reindex(source_index, target_index, sleep_time)
+
+    def reindex_stop(self, source_index):
+        self.reindexer.reindex_stop(source_index)
 
     def reindex_cutover(self, source_index):
         _, schema = self.get_current_schema(True)
-        self.reindexer.cutover(source_index, schema)
+        # add new index to cluster/aliases
+        # remove old index from cluster/aliases
+        # TODO delete old index completely?  Should be 0 docs left
+        target_index = '%s_new' % source_index
+        for alias in schema['aliases']:
+            if source_index in alias['indexes']:
+                self.add_index(alias['name'], target_index)
+                self.remove_index(source_index)
 

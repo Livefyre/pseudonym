@@ -31,6 +31,8 @@ def main():
     if opts['enforce']:
         manager.enforce()
     if opts['reindex']:
-        manager.reindex(opts['<index>'])
+        manager.reindex(opts['<index>'], opts['<sleep_time>'])
+    if opts['reindex_stop']:
+        manager.reindex_stop(opts['<index>'])
     if opts['reindex_cutover']:
         manager.reindex_cutover(opts['<index>'])
