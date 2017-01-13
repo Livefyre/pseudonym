@@ -79,3 +79,7 @@ class SchemaEnforcer(object):
     def apply_settings(self, setting_cfg):
         print 'putting settings to %s, body=%s' % (','.join(setting_cfg['indexes']), setting_cfg['settings'])
         self.client.indices.put_settings(index=','.join(setting_cfg['indexes']), body=setting_cfg['settings'])
+
+    def index_exists(self, index):
+        return self.client.indices.exists(index=index)
+

@@ -1,12 +1,11 @@
 import logging
 import json
 
-from elasticsearch.exceptions import NotFoundError
 from pseudonym.compiler import SchemaCompiler
 from pseudonym.enforcer import SchemaEnforcer
 from pseudonym.errors import RoutingException
 from pseudonym.strategy import Strategies
-
+from pseudonym.reindexer import Reindexer
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +17,8 @@ class SchemaManager(object):
         self._schema = None
         self._strategies = None
         self._routers = {}
+        self.enforcer = SchemaEnforcer(self.client)
+        self.reindexer = Reindexer(self.client)
 
     schema_type = 'schema'
 
@@ -52,7 +53,7 @@ class SchemaManager(object):
         return self._strategies
 
     def update(self, config):
-        if not self.client.indices.exists(index=self.schema_index):
+        if not self.enforcer.index_exists(index=self.schema_index):
             self.client.indices.create(index=self.schema_index)
             schema = {'schema': json.dumps({'aliases': [], 'indexes': []})}
             self.client.index(index=self.schema_index, id='master', doc_type=self.schema_type,
@@ -106,10 +107,36 @@ class SchemaManager(object):
         self.apply(meta, schema)
 
     def enforce(self):
-        SchemaEnforcer(self.client).enforce(self.get_current_schema(True)[1])
+        self.enforcer.enforce(self.get_current_schema(True)[1])
 
     def route(self, alias, routing):
         return self.get_router(alias).route(routing)['name']
 
     def reload(self):
         self.get_current_schema(True)
+
+    '''
+    1. creates new index during initial reindex call
+    2. reindexes all docs to new index
+    3. removes reindexed docs from old index so we can easily stop/resume reindexing at any point
+    '''
+    def reindex(self, source_index, sleep_time):
+        target_index = '%s_new' % source_index
+        if not self.enforcer.index_exists(index=target_index):
+            self.enforcer.create_index(target_index)
+        self.reindexer.do_reindex(source_index, target_index, sleep_time)
+
+    def reindex_stop(self, source_index):
+        self.reindexer.reindex_stop(source_index)
+
+    def reindex_cutover(self, source_index):
+        _, schema = self.get_current_schema(True)
+        # add new index to cluster/aliases
+        # remove old index from cluster/aliases
+        # TODO delete old index completely?  Should be 0 docs left
+        target_index = '%s_new' % source_index
+        for alias in schema['aliases']:
+            if source_index in alias['indexes']:
+                self.add_index(alias['name'], target_index)
+                self.remove_index(source_index)
+

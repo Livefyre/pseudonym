@@ -74,3 +74,23 @@ class TestSchemaManager(unittest.TestCase):
         self.assertEqual(schema_doc['indexes'][0]['name'], '201501')
         self.assertEqual(len(schema_doc['aliases']), 1)
         self.assertEqual(schema_doc['aliases'][0]['indexes'], ['201501'])
+
+    def test_reindex_cutover(self):
+        source_index = "reindex_2017_01"
+        # Add both indexes to aliases before cutover
+        target_index = '%s_new' % source_index
+        alias1 = 'cutover1'
+
+        cfg = {'aliases': [{'name': alias1, 'strategy': {'date': {'indexes': {source_index: datetime.date(2017, 1, 1).isoformat()}}}}]}
+        self.manager.update(cfg)
+
+        _, schema = self.manager.get_current_schema(True)
+        self.assertEquals(schema['aliases'][0]['name'], alias1)
+
+        self.manager.reindex_cutover(source_index)
+
+        _, schema = self.manager.get_current_schema(True)
+        aliases = [alias for alias in schema['aliases'] if alias['name'] is alias1]
+        for alias in aliases:
+            self.assertTrue(target_index in alias['indexes'])
+            self.assertTrue(source_index not in alias['indexes'])
