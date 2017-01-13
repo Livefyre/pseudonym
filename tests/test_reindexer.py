@@ -45,7 +45,7 @@ class TestReindexer(unittest.TestCase):
 
         self.client.indices.refresh(','.join([self.source_index, self.target_index]))
         docs = self.client.search(index=self.source_index)
-        self.assertEqual(len(docs['hits']['hits']), 0)
+        self.assertEqual(len(docs['hits']['hits']), 5)
         docs = self.client.search(index=self.target_index)
         self.assertEqual(len(docs['hits']['hits']), 5)
 
