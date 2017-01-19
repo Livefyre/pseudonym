@@ -123,7 +123,7 @@ class SchemaManager(object):
     def reindex(self, source_index, sleep_time):
         target_index = '%s_new' % source_index
         if not self.enforcer.index_exists(index=target_index):
-            self.enforcer.create_index(target_index)
+            self.enforcer.create_index_by_name(target_index)
         self.reindexer.do_reindex(source_index, target_index, sleep_time)
 
     def reindex_stop(self, source_index):
