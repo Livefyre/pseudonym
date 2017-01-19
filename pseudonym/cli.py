@@ -4,7 +4,7 @@ Usage:
   pseudonym [options] index add <alias> <index> <routing>
   pseudonym [options] index remove <index>
   pseudonym [options] enforce
-  pseudonym [options] reindex <index>
+  pseudonym [options] reindex <index> <scroll_sleep_time>
   pseudonym [options] reindex_cutover <index>
   pseudonym (-h --help)
   pseudonym --version
@@ -31,8 +31,6 @@ def main():
     if opts['enforce']:
         manager.enforce()
     if opts['reindex']:
-        manager.reindex(opts['<index>'], opts['<sleep_time>'])
-    if opts['reindex_stop']:
-        manager.reindex_stop(opts['<index>'])
+        manager.reindex(opts['<index>'], opts['<scroll_sleep_time>'])
     if opts['reindex_cutover']:
         manager.reindex_cutover(opts['<index>'])

@@ -26,6 +26,16 @@ class SchemaEnforcer(object):
         for setting_cfg in schema['settings']:
             self.apply_settings(setting_cfg)
 
+    def create_index_by_name(self, index_name):
+        # By default ES will enforce whatever mapping mappings and settings are in the SI lib, IF the index name matches a template
+        try:
+            self.client.indices.create(index=index_name)
+            return
+        except RequestError, e:
+            # index_already_exists_exception was introduced in ES 2.x
+            if 'index_already_exists_exception' not in e.error and 'IndexAlreadyExistsException' not in e.error:
+                raise
+
     def create_index(self, index):
         body = {}
         if index.get('mappings'):
