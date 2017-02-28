@@ -93,3 +93,6 @@ class SchemaEnforcer(object):
     def index_exists(self, index):
         return self.client.indices.exists(index=index)
 
+    def put_mapping(self, index_name, doc_type, mapping):
+        self.client.indices.put_mapping(index=index_name, doc_type=doc_type, body={doc_type: mapping})
+        logger.info("Updated mapping for index: %s" % index_name)

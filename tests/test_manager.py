@@ -14,7 +14,10 @@ class TestSchemaManager(unittest.TestCase):
         self.manager = SchemaManager(self.client, schema_index=self.test_schema_index)
 
     def tearDown(self):
-        self.client.indices.delete(self.test_schema_index)
+        try:
+            self.client.indices.delete(self.test_schema_index)
+        except:
+            pass
 
     def test_schema_compiling(self):
         cfg = {'aliases': [{'name': 'alias1', 'strategy': {'date': {'indexes': {'201401': datetime.date(2014, 1, 1).isoformat()}}}}]}
@@ -94,3 +97,19 @@ class TestSchemaManager(unittest.TestCase):
         for alias in aliases:
             self.assertTrue(target_index in alias['indexes'])
             self.assertTrue(source_index not in alias['indexes'])
+
+    def test_put_mapping(self):
+        index = 'put_mapping_test'
+        doc_type = 'test_doc'
+        mapping = { "properties": { "counters": { "properties": { "collections": { "type": "integer" }, "content": { "type": "integer" }, "likes": { "type": "integer" } } }}}
+
+        self.client.indices.create(index=index)
+        self.manager.put_mapping(index, doc_type, mapping)
+        index_mapping = self.client.indices.get_mapping(index, doc_type)
+
+
+        full_mapping = {index: {'mappings': {doc_type: mapping}}}
+        self.assertEqual(full_mapping, index_mapping)
+
+        #cleanup
+        self.client.indices.delete(index)

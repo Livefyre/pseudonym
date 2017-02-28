@@ -140,3 +140,7 @@ class SchemaManager(object):
                 self.add_index(alias['name'], target_index)
                 self.remove_index(source_index)
 
+    def put_mapping(self, index_name, doc_type, mapping):
+        mapping = json.loads(mapping)
+        self.enforcer.put_mapping(index_name, doc_type, mapping)
+

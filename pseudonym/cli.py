@@ -6,6 +6,7 @@ Usage:
   pseudonym [options] enforce
   pseudonym [options] reindex <index> <scroll_sleep_time>
   pseudonym [options] reindex_cutover <index>
+  pseudonym [options] put_mapping <index> <doc_type> <mapping>
   pseudonym (-h --help)
   pseudonym --version
 
@@ -34,3 +35,5 @@ def main():
         manager.reindex(opts['<index>'], opts['<scroll_sleep_time>'])
     if opts['reindex_cutover']:
         manager.reindex_cutover(opts['<index>'])
+    if opts['put_mapping']:
+        manager.put_mapping(opts['<index>'], opts['<doc_type>'], opts['<mapping>'])
