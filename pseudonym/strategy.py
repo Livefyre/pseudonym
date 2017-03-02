@@ -1,4 +1,5 @@
 import datetime
+import math
 from pseudonym.errors import InvalidConfigError
 from pseudonym.errors import RoutingException
 from pseudonym.filter import IndexFilter
@@ -196,6 +197,14 @@ class MonthlyRoutingStrategy(CalendarRoutingStrategy):
         today = self.today()
         this_month = datetime.datetime(today.year, today.month, 1)
         return {'name': this_month.strftime(cfg['index_name_pattern']), 'routing': this_month.isoformat()}
+
+@register('quarterly')
+class QuarterlyRoutingStrategy(CalendarRoutingStrategy):
+    def get_next(self, cfg):
+        today = self.today()
+        quarter = int(math.ceil(today.month / 3.0))
+        this_quarter = datetime.datetime(today.year, quarter * 3 - 2, 1)
+        return {'name': this_quarter.strftime(cfg['index_name_pattern']), 'routing': this_quarter.isoformat()}
 
 
 @register('annual')
