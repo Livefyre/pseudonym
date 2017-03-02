@@ -202,7 +202,7 @@ class MonthlyRoutingStrategy(CalendarRoutingStrategy):
 class QuarterlyRoutingStrategy(CalendarRoutingStrategy):
     def get_next(self, cfg):
         today = self.today()
-        quarter = int(math.ceil(today.month / 4.0))
+        quarter = int(math.ceil(today.month / 3.0))
         this_quarter = datetime.datetime(today.year, quarter * 3 - 2, 1)
         return {'name': this_quarter.strftime(cfg['index_name_pattern']), 'routing': this_quarter.isoformat()}
 
