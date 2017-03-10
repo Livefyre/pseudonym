@@ -1,5 +1,7 @@
 import time
+import datetime
 import logging
+logging.basicConfig(level="INFO")
 
 from elasticsearch.helpers import scan, streaming_bulk, bulk, reindex
 
@@ -14,17 +16,22 @@ class Reindexer(object):
         # Block updates to docs in source index
         self._set_read_only(source_index, True)
         self._set_scroll_sleep(sleep_time)
-        errors = []
+        scan_kwargs = {'timeout': 90, 'size': 200}
+        bulk_kwargs = {'timeout': 90, 'stats_only': False}
 
         try:
+            logger.info("Scroll start: %s" % str(datetime.datetime.now().time()))
             # Using the python client reindex helper instead of native reindex api because it's not available until 2.3
-            errors = reindex(self.client, source_index, target_index)
+            errors = reindex(self.client, source_index, target_index, scan_kwargs=scan_kwargs, bulk_kwargs=bulk_kwargs)
+            if errors:
+                for err in errors:
+                    logger.error('Error: %s' % err)
         except Exception as e:
             logger.exception("Reindex operation failed: %s" % e.message)
         finally:
+            logger.info("Scroll end: %s" % str(datetime.datetime.now().time()))
             self._set_read_only(source_index, False)
             self.client.scroll = self.builtin_scroll
-        return errors
 
     def _set_read_only(self, index, read_only):
         read_only_setting = {"index": {"blocks": {"write": read_only}}}

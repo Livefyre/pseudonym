@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pseudonym",
-    version="0.5.4",
+    version="0.5.5",
     author="Jonathan Klaassen",
     author_email="jonathan@livefyre.com",
     description=("A library for configuring elasticsearch aliases."),
