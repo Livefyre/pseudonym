@@ -23,7 +23,7 @@ from pseudonym.manager import SchemaManager
 
 def main():
     opts = docopt(__doc__)
-    manager = SchemaManager(Elasticsearch(opts['--host']))
+    manager = SchemaManager(Elasticsearch(opts['--host'], timeout=90))
     if opts['remove']:
         manager.remove_index(opts['<index>'])
     if opts['add']:
