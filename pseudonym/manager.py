@@ -133,10 +133,15 @@ class SchemaManager(object):
     def reindex_cutover(self, source_index):
         _, schema = self.get_current_schema(True)
         # add new index to aliases, remove old index from aliases
+        routing = None
+        for index_cfg in schema['indexes']:
+            if index_cfg['name'] == source_index:
+                routing = index_cfg.get('routing')
+                break
+
         target_index = '%s_new' % source_index
         for alias in schema['aliases']:
             if source_index in alias['indexes']:
-                self.add_index(alias['name'], target_index)
+                self.add_index(alias['name'], target_index, routing=routing)
                 self.remove_index(source_index)
         self.enforce()
-

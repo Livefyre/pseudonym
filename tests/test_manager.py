@@ -87,6 +87,11 @@ class TestSchemaManager(unittest.TestCase):
         _, schema = self.manager.get_current_schema(True)
         self.assertEquals(schema['aliases'][0]['name'], alias1)
 
+        source_routing = None
+        for index in schema['indexes']:
+            if index['name'] == source_index:
+                source_routing = index.get('routing')
+
         self.manager.reindex_cutover(source_index)
 
         _, schema = self.manager.get_current_schema(True)
@@ -94,3 +99,11 @@ class TestSchemaManager(unittest.TestCase):
         for alias in aliases:
             self.assertTrue(target_index in alias['indexes'])
             self.assertTrue(source_index not in alias['indexes'])
+
+        target_routing = None
+        for index in schema['indexes']:
+            if index['name'] == target_index:
+                target_routing = index.get('routing')
+        self.assertIsNotNone(target_routing)
+        self.assertEquals(source_routing, target_routing)
+
