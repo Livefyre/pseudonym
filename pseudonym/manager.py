@@ -21,6 +21,7 @@ class SchemaManager(object):
         self.reindexer = Reindexer(self.client)
 
     schema_type = 'schema'
+    CFG_FIELDS = ['routing', 'alias']
 
     def get_current_schema(self, force=False):
         if not self._schema or force:
@@ -133,10 +134,37 @@ class SchemaManager(object):
     def reindex_cutover(self, source_index):
         _, schema = self.get_current_schema(True)
         # add new index to aliases, remove old index from aliases
+        routing = None
+        source_cfg = None
+        for index_cfg in schema['indexes']:
+            if index_cfg['name'] == source_index:
+                routing = index_cfg.get('routing')
+                source_cfg = index_cfg
+                break
+
         target_index = '%s_new' % source_index
         for alias in schema['aliases']:
             if source_index in alias['indexes']:
-                self.add_index(alias['name'], target_index)
+                self.add_index(alias['name'], target_index, routing=routing)
                 self.remove_index(source_index)
+
+        if not self.verify_cutover(source_cfg, target_index):
+            # If we fail verification then we need to see why and take manual steps to fix
+            return
         self.enforce()
 
+    def verify_cutover(self, source_index_cfg, target_index_name):
+        target_cfg = None
+        _, schema = self.get_current_schema(True)
+
+        for index_cfg in schema['indexes']:
+            if index_cfg['name'] == target_index_name:
+                target_cfg = index_cfg
+                break
+
+        for field in self.CFG_FIELDS:
+            if source_index_cfg.get(field) != target_cfg.get(field):
+                logger.exception("Reindex cutover issue - mismatched config values for field: %s.  Old index value: %s, new index value: %s" %
+                                 (field, source_index_cfg.get(field), target_cfg.get(field)))
+                return False
+        return True
