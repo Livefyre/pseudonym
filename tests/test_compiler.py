@@ -154,11 +154,11 @@ class TestSettings(unittest.TestCase):
         existing = {'aliases': [{'name': 'alias_1', 'indexes': [index['name'] for index in indexes]}],
                     'indexes': indexes, 'templates': {}}
         cfg = {'settings': [{'filter': {'slice': ':2', 'aliases': ['alias_1']},
-                             'settings': {"index.routing.allocation.require.storage_type": "a"}}],
+                             'settings': {'index': {'routing': {'allocation': {'require': {'storage_type': "a"}}}}}}],
                'aliases': []}
 
         schema = SchemaCompiler.compile(existing, cfg)
         test_schema = existing.copy()
         test_schema['settings'] = [{'indexes': ['test_index_2', 'test_index_1'],
-                                    'settings': {"index.routing.allocation.require.storage_type": "a"}}]
+                                    'settings': {'index': {'routing': {'allocation': {'require': {'storage_type': "a"}}}}}}]
         self.assertEqual(schema, test_schema)
