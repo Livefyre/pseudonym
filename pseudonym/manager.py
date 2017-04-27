@@ -129,6 +129,14 @@ class SchemaManager(object):
         target_index = '%s_new' % source_index
         if not self.enforcer.index_exists(index=target_index):
             self.enforcer.create_index_by_name(target_index)
+            meta, schema = self.get_current_schema(True)
+            for index_cfg in schema['indexes']:
+                if index_cfg['name'] == source_index:
+                    target_cfg = dict(index_cfg)
+                    break
+            target_cfg['name'] = target_index
+            schema['indexes'].append(target_cfg)
+            self.apply(meta, schema)
         self.reindexer.do_reindex(source_index, target_index, sleep_time)
 
     def reindex_cutover(self, source_index):
