@@ -7,7 +7,7 @@ from elasticsearch.helpers import bulk
 class TestReindexer(unittest.TestCase):
     def setUp(self):
         self.source_index = "reindex"
-        self.target_index = "reindex_new"
+        self.target_index = "reindex-a"
         self.client = Elasticsearch()
         self.reindexer = Reindexer(self.client)
         self.schema_manager = SchemaManager(self.client)
