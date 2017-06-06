@@ -76,24 +76,7 @@ class SchemaManager(object):
 
     def add_index(self, alias_name, index_name, routing=None):
         meta, schema = self.get_current_schema(True)
-        for alias in schema['aliases']:
-            if alias['name'] == alias_name:
-                break
-        else:
-            raise Exception("Alias %s does not exist." % alias_name)
-
-        for index in schema['indexes']:
-            if index['name'] == index_name:
-                break
-        else:
-            index_cfg = {'name': index_name, 'alias': alias_name, 'mappings': None, 'settings': None}
-            if routing:
-                index_cfg['routing'] = routing
-            schema['indexes'].append(index_cfg)
-
-        if index_name not in alias['indexes']:
-            alias['indexes'].append(index_name)
-
+        SchemaCompiler.add_index(schema, alias_name, index_name, routing)
         self.apply(meta, schema)
 
     def remove_index(self, index_name):
@@ -101,6 +84,9 @@ class SchemaManager(object):
         for alias in schema['aliases']:
             if index_name in alias['indexes']:
                 alias['indexes'].remove(index_name)
+        for settings in schema['settings']:
+            if index_name in settings['indexes']:
+                settings['indexes'].remove(index_name)
         for index_cfg in schema['indexes'][:]:
             if index_cfg['name'] == index_name:
                 schema['indexes'].remove(index_cfg)

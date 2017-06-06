@@ -10,6 +10,45 @@ logger = logging.getLogger(__name__)
 
 class SchemaCompiler(object):
     @classmethod
+    def add_index(cls, existing, alias_name, index_name, routing):
+        for alias in existing['aliases']:
+            if alias['name'] == alias_name:
+                break
+        else:
+            raise Exception("Alias %s does not exist." % alias_name)
+
+        strategy, strategy_cfg = cls._get_strategy(alias)
+
+        for index in existing['indexes']:
+            if index['name'] == index_name:
+                break
+        else:
+            index = {'name': index_name, 
+                     'alias': alias_name, 
+                     'mappings': alias.get('mappings'), 
+                     'settings': alias.get('settings')}
+            existing['indexes'].append(index)
+
+        if routing:
+            index['routing'] = routing
+
+        for alias in existing['aliases']:
+            strategy, strategy_cfg = cls._get_strategy(alias)
+            alias['indexes'] = strategy.link_indexes(existing, alias, strategy_cfg, [index])
+        return existing
+
+    @classmethod
+    def _get_strategy(cls, alias_cfg):
+        if isinstance(alias_cfg['strategy'], basestring):
+            strategy_type = alias_cfg['strategy']
+            strategy_cfg = {}
+        else:
+            strategy_type = alias_cfg['strategy'].keys()[0]
+            strategy_cfg = alias_cfg['strategy'][strategy_type]
+
+        return Strategies[strategy_type].instance(), strategy_cfg
+
+    @classmethod
     def compile(cls, existing, config):
         existing_aliases = {a['name']: a for a in existing.get('aliases', [])}
         schema = {'aliases': existing['aliases'][:],
@@ -32,14 +71,7 @@ class SchemaCompiler(object):
 
             existing_alias = existing_aliases.get(compiled_alias['name'])
 
-            if isinstance(alias['strategy'], basestring):
-                strategy_type = alias['strategy']
-                strategy_cfg = {}
-            else:
-                strategy_type = alias['strategy'].keys()[0]
-                strategy_cfg = alias['strategy'][strategy_type]
-
-            strategy = Strategies[strategy_type].instance()
+            strategy, strategy_cfg = cls._get_strategy(alias)
             if strategy.uses_alias and not (existing_alias and all([compiled_alias[k] == existing_alias[k] for k in ['filter', 'routing']])):
                 has_diff = True
 
