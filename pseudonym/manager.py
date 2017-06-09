@@ -112,9 +112,17 @@ class SchemaManager(object):
     3. After reindex complete call reindex_cutover to move aliases to new index
     '''
     def reindex(self, source_index, sleep_time):
-        target_index = '%s_new' % source_index
+        target_index = self._get_target_index(source_index)
         if not self.enforcer.index_exists(index=target_index):
             self.enforcer.create_index_by_name(target_index)
+            meta, schema = self.get_current_schema(True)
+            for index_cfg in schema['indexes']:
+                if index_cfg['name'] == source_index:
+                    target_cfg = dict(index_cfg)
+                    break
+            target_cfg['name'] = target_index
+            schema['indexes'].append(target_cfg)
+            self.apply(meta, schema)
         self.reindexer.do_reindex(source_index, target_index, sleep_time)
 
     def reindex_cutover(self, source_index):
@@ -128,7 +136,7 @@ class SchemaManager(object):
                 source_cfg = index_cfg
                 break
 
-        target_index = '%s_new' % source_index
+        target_index = self._get_target_index(source_index)
         for alias in schema['aliases']:
             if source_index in alias['indexes']:
                 self.add_index(alias['name'], target_index, routing=routing)
@@ -154,3 +162,12 @@ class SchemaManager(object):
                                  (field, source_index_cfg.get(field), target_cfg.get(field)))
                 return False
         return True
+
+    def _get_target_index(self, source_index_name):
+        suffix = 'a'
+        if '-' in source_index_name:
+            source = source_index_name.split('-')
+            source_index_name = str.join('',source[:-1])
+            curr_letter = source[-1]
+            suffix = chr(ord(curr_letter) + 1)
+        return '%s-%s' % (source_index_name, suffix)

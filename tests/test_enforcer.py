@@ -55,9 +55,9 @@ class TestEnforcer(unittest.TestCase):
                   'aliases': [],
                   'templates': {},
                   'settings': [{"indexes": ["test_index_1", "test_index_2"],
-                               "settings": {"index.routing.allocation.require.storage_type": "a"}},
+                               "settings": {'index': {'routing': {'allocation': {'require': {'storage_type': "a"}}}}}},
                                {"indexes": ["test_index_3"],
-                               "settings": {"index.routing.allocation.require.storage_type": "b"}}]}
+                               "settings": {'index': {'routing': {'allocation': {'require': {'storage_type': "b"}}}}}}]}
         SchemaEnforcer(self.client).enforce(schema)
         for index_num, value in [('1', 'a'), ('2', 'a'), ('3', 'b')]:
             index_name = 'test_index_%s' % index_num

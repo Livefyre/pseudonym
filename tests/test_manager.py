@@ -14,7 +14,10 @@ class TestSchemaManager(unittest.TestCase):
         self.manager = SchemaManager(self.client, schema_index=self.test_schema_index)
 
     def tearDown(self):
-        self.client.indices.delete(self.test_schema_index)
+        try:
+            self.client.indices.delete(self.test_schema_index)
+        except:
+            pass
 
     def test_schema_compiling(self):
         cfg = {'aliases': [{'name': 'alias1', 'strategy': {'date': {'indexes': {'201401': datetime.date(2014, 1, 1).isoformat()}}}}]}
@@ -78,7 +81,7 @@ class TestSchemaManager(unittest.TestCase):
     def test_reindex_cutover(self):
         source_index = "reindex_2017_01"
         # Add both indexes to aliases before cutover
-        target_index = '%s_new' % source_index
+        target_index = '%s-a' % source_index
         alias1 = 'cutover1'
 
         cfg = {'aliases': [{'name': alias1, 'strategy': {'date': {'indexes': {source_index: datetime.date(2017, 1, 1).isoformat()}}}}]}
@@ -106,4 +109,12 @@ class TestSchemaManager(unittest.TestCase):
                 target_routing = index.get('routing')
         self.assertIsNotNone(target_routing)
         self.assertEquals(source_routing, target_routing)
+
+    def test_get_target_index(self):
+        source_name = 'assets_2017_01'
+        target = self.manager._get_target_index(source_name)
+        self.assertEquals(target, 'assets_2017_01-a')
+
+        target = self.manager._get_target_index(target)
+        self.assertEquals(target, 'assets_2017_01-b')
 
