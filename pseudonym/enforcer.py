@@ -59,7 +59,7 @@ class SchemaEnforcer(object):
             try:
                 self.client.indices.put_mapping(index=index['name'], doc_type=doc_type, body={doc_type: mapping})
             except RequestError, e:
-                if 'MergeMappingException' in e.error:
+                if 'illegal_argument_exception' in e.error:
                     logger.exception("Error merging mappings")
                 else:
                     raise
