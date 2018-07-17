@@ -1,7 +1,6 @@
 import time
 import datetime
 import logging
-logging.basicConfig(level="WARN")
 
 from elasticsearch.helpers import scan, streaming_bulk, bulk, reindex
 
