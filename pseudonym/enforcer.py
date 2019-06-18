@@ -77,7 +77,7 @@ class SchemaEnforcer(object):
         for index in alias['indexes']:
             if index in existing:
                 existing.discard(index)
-                continue
+
             body = {'index': index, 'alias': alias['name']}
             body.update({key: alias[key] for key in ['routing', 'filter'] if key in alias})
             actions.append({'add': body})
