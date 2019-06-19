@@ -1,10 +1,4 @@
 livefyre('''
-test:
-  image:
-    label: corpjenkins/polyglot
-  git: true
-  commands:
-    - make clean test
 deploy:
   branch: master
   image:
