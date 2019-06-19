@@ -6,5 +6,5 @@ deploy:
   git: true
   confirm: true
   commands:
-    - make clean env
+    - make release
 ''')
