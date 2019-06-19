@@ -1,6 +1,7 @@
 .PHONY: test clean
 
 PYTHON = . env/bin/activate; exec python
+DISTRIBUTE_PYTHON = sdist bdist_wheel
 
 test: env
 	. env/bin/activate; nosetests $(NOSEARGS)
@@ -18,3 +19,6 @@ env/bin/activate: requirements.txt setup.py
 	. env/bin/activate; pip install -U pip wheel
 	. env/bin/activate; pip install -r requirements.txt
 	touch env/bin/activate
+
+release:
+	python setup.py $(DISTRIBUTE_PYTHON) upload -r livefyre
